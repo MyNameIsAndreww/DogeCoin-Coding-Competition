@@ -1,0 +1,25 @@
+!pip install sklearn
+
+from sklearn.linear_model import LinearRegression
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("DOGE-USD.csv")
+
+x = np.array(df.index.tolist())
+x = np.delete(x, range(0,200))
+y = np.array(df['Open'].tolist())
+y = np.delete(y, range(0,200))
+x = x.reshape(-1, 1)
+y = y.reshape(-1, 1)
+
+model = LinearRegression()
+model.fit(x, y)
+
+model.fit(x,y)
+
+model.score(x,y)
+
+plt.scatter(x, y,color='g')
+plt.plot(x, model.predict(x),color='k')
