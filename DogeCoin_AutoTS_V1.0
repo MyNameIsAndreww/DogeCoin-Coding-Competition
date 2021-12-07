@@ -27,3 +27,5 @@ df.plot(figsize=(12, 8), title="DogeCoin", fontsize=20, label="Close Price")
 forecast['Close'].plot(figsize=(12, 8), title= 'DogeCoin', fontsize=20, label='Test')
 plt.grid()
 plt.legend()
+
+prediction.forecast
