@@ -4,22 +4,53 @@ from sklearn.linear_model import LinearRegression
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import time
+import datetime
 
 df = pd.read_csv("DOGE-USD.csv")
 
-x = np.array(df.index.tolist())
-x = np.delete(x, range(0,200))
-y = np.array(df['Open'].tolist())
-y = np.delete(y, range(0,200))
-x = x.reshape(-1, 1)
-y = y.reshape(-1, 1)
+#Data processing
+def data_reset():
+    unix = []
+    for i in df['Date']:
+        u = time.mktime(datetime.datetime.strptime(i, "%Y-%m-%d").timetuple())
+        unix.append(u)
+    close = df['Close'].tolist()
 
-model = LinearRegression()
-model.fit(x, y)
+    global data
+    data = pd.DataFrame(list(zip(unix, close)), columns=['Date', 'Close'])
+    plt.plot(data['Close'])
+    plt.show
 
-model.fit(x,y)
+#Window Editor
+def window_editor(window_start, window_end):
+    if window_end == 'none':
+        window_end = len(data)
+    window_start = int(window_start)
+    window_end = int(window_end)
+    for i in data.index:
+        if i < window_start or i > window_end:
+            data.drop(i, inplace=True)
+    plt.plot(data['Close'])
 
-model.score(x,y)
+#Linear Regression Function
+def linReg():
+    x = np.array(data.index.tolist())
+    y = np.array(data['Close'])
+    x = x.reshape(-1, 1)
+    y = y.reshape(-1, 1)
 
-plt.scatter(x, y,color='g')
-plt.plot(x, model.predict(x),color='k')
+    model = LinearRegression()
+    model.fit(x,y)
+    plt.plot(x, y, color='g')
+    plt.plot(x, model.predict(x), color='r')
+
+while True:
+    data_reset()
+    window_start = input('Please select starting index or "quit": ')
+    if window_start == 'quit':
+        break
+    window_end = input('Please select end index (type "none" for most recent): ')
+    window_editor(window_start, window_end)
+    linReg()
+    break
