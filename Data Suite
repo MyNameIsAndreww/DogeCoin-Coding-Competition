@@ -1,0 +1,133 @@
+# https://www.investopedia.com/terms/z/zig_zag_indicator.asp
+
+from sklearn.linear_model import LinearRegression
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import time
+import datetime
+
+df = pd.read_csv("DOGE-USD.csv")
+
+
+# Data processing
+def data_reset():
+    unix = []
+    for i in df['Date']:
+        u = time.mktime(datetime.datetime.strptime(i, "%Y-%m-%d").timetuple())
+        unix.append(u)
+    close = df['Close'].tolist()
+
+    global data
+    data = pd.DataFrame(list(zip(unix, close)), columns=['Date', 'Close'])
+    plt.plot(data['Close'])
+
+
+# Window Editor
+def window_editor(window_start, window_end):
+    data_reset()
+    if not window_end:
+        window_end = len(data)
+    window_start = int(window_start)
+    window_end = int(window_end)
+    for i in data.index:
+        if i < window_start or i > window_end:
+            data.drop(i, inplace=True)
+    plt.plot(data['Close'])
+
+
+# Percent parameter in % not decimal
+def zig_zag(percent):
+    percent_cuttoff = percent / 100
+    global index
+    index = data.index.tolist()[0]
+    global points
+    points = [[index, data['Close'][index]]]
+
+    # x is each close price and y is the index at which that close price was recorded
+    while True:
+        duplicate = index
+        for x, y in zip(
+                data['Close'][index - int(data.index.tolist()[0]):],
+                data[index - int(data.index.tolist()[0]):].index.tolist()):
+            percent = abs((x - data['Close'][index]) / data['Close'][index])
+            if percent >= percent_cuttoff:
+                points.append([y, x])
+                index = y
+                break
+        if index == len(data) - 1 or duplicate == index:
+            points.append([y-1, x])
+            break
+
+    ps = pd.DataFrame(points, columns=['Index', 'Close'])
+    ps.set_index('Index', inplace=True)
+
+    plt.plot(data['Close'])
+    plt.plot(ps)
+
+
+# Percent parameter in % not decimal
+def zig_zag_linReg(percent):
+    percent_cuttoff = percent / 100
+    global index
+    index = data.index.tolist()[0]
+    global points
+    points = [[index, data['Close'][index]]]
+
+    # x is each close price and y is the index at which that close price was recorded
+    while True:
+        duplicate = index
+        for x, y in zip(
+                data['Close'][index - int(data.index.tolist()[0]):],
+                data[index - int(data.index.tolist()[0]):].index.tolist()):
+            percent = abs((x - data['Close'][index]) / data['Close'][index])
+            if percent >= percent_cuttoff:
+                points.append([y, x])
+                index = y
+                break
+        if index == len(data) - 1 or duplicate == index:
+            points.append([y-1, x])
+            break
+
+    ps = pd.DataFrame(points, columns=['Index', 'Close'])
+
+    for i in range(1, len(ps['Index'])):
+        linReg(ps['Index'][i - 1], ps['Index'][i])
+
+    ps.set_index('Index', inplace=True)
+
+    plt.plot(data['Close'])
+
+
+# Linear Regression Function
+def linReg(start, end):
+    start = start - data.index[0]
+    end = end - data.index[0]
+
+    x = np.array(data.index.tolist()[start:end])
+    y = np.array(data['Close'][start:end])
+    x = x.reshape(-1, 1)
+    y = y.reshape(-1, 1)
+
+    model = LinearRegression()
+    model.fit(x, y)
+    # plt.plot(x, y, color='g')
+    plt.plot(x, model.predict(x), color='r')
+
+
+if __name__ == "__main__":
+    data_reset()
+    plt.show()
+
+    while True:
+        user = int(input('1) Zig-Zag 2) Linear 3) Exit '))
+        if user == 1:
+            percent = int(input('Enter %: '))
+            zig_zag(percent)
+            plt.show()
+        elif user == 2:
+            percent = int(input('Enter %: '))
+            zig_zag_linReg(percent)
+            plt.show()
+        else:
+            break
