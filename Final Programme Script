@@ -54,7 +54,6 @@ def zig_zag_linReg(percent):
 
     model = []
     for i in range(1, len(ps['Index'])):
-        print(ps)
         p, r, m = linReg(ps['Index'][i - 1], ps['Index'][i])
         sub_model = []
         for l, k in zip(p, r):
@@ -78,7 +77,6 @@ def zig_zag_linReg(percent):
     forecast_plot = pd.DataFrame(forecast_plot)
     forecast_plot.set_index(1, inplace=True)
 
-    print(forecast_plot)
     plt.plot(forecast_plot, color='g')
     return model, forecast
 
@@ -87,7 +85,6 @@ def zig_zag_linReg(percent):
 def linReg(start, end):
     start = start - data.index[0]
     end = end - data.index[0]
-    print(start, end)
     x = np.array(data.index.tolist()[start:end])
     y = np.array(data['Close'][start:end])
     x = x.reshape(-1, 1)
@@ -103,11 +100,13 @@ def linReg(start, end):
 if __name__ == "__main__":
     file = input('\nHello and welcome to this data forecasting programme. Before we can begin,'
                  '\nmake sure you have uploaded the data in the correct format.'
-                 '\nThe data should be from Yahoo Finance (link bellow) in a csv file named "DOGE-USD.csv" and should be placed'
-                 '\nin the same directory as this file. If this is not the case,'
+                 '\nThe data should be from Yahoo Finance (link bellow) in a csv file named "DOGE-USD.csv" '
+                 '\nand should be placed in the same '
+                 '\ndirectory as Main.exe. If this is not the case '
+                 '\nor if the data is not from today,'
                  '\nplease exit the programme and add the correct file, otherwise'
-                 '\njust hit enter twice'
-                 '\nData download: https://finance.yahoo.com/quote/DOGE-USD/history/')
+                 '\njust hit enter twice to continue'
+                 '\nData download: https://finance.yahoo.com/quote/DOGE-USD/history/\n')
 
     global df
     df = pd.read_csv("DOGE-USD.csv")
@@ -116,10 +115,9 @@ if __name__ == "__main__":
     model, forecast = zig_zag_linReg(15)
 
     today = datetime.date.today()
-    print('\n\033[1mHere is the forecast for the next 7 days:\033[0m')
+    print('\nHere is the forecast for the next 7 days:')
     for i in range(len(forecast)):
         d = datetime.date.today() + datetime.timedelta(days=i)
         print(f'{d}: {forecast[i]}')
     print('\nUse the tools on the plot to zoom and inspect the graph closer.')
-
     plt.show()
