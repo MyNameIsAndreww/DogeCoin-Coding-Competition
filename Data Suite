@@ -1,13 +1,16 @@
 # https://www.investopedia.com/terms/z/zig_zag_indicator.asp
+# https://towardsdatascience.com/7-libraries-that-help-in-time-series-problems-d59473e48ddd
 
-from sklearn.linear_model import LinearRegression
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import time
-import datetime
-
-df = pd.read_csv("DOGE-USD.csv")
+try:
+    from sklearn.linear_model import LinearRegression
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import time
+    import datetime
+    from autots import AutoTS
+except ImportError as error:
+    print('Import Error...')
 
 
 # Data processing
@@ -56,7 +59,7 @@ def zig_zag(percent):
                 index = y
                 break
         if index == len(data) - 1 or duplicate == index:
-            points.append([y-1, x])
+            points.append([y - 1, x])
             break
 
     ps = pd.DataFrame(points, columns=['Index', 'Close'])
@@ -64,6 +67,8 @@ def zig_zag(percent):
 
     plt.plot(data['Close'])
     plt.plot(ps)
+
+    return ps
 
 
 # Percent parameter in % not decimal
@@ -86,17 +91,23 @@ def zig_zag_linReg(percent):
                 index = y
                 break
         if index == len(data) - 1 or duplicate == index:
-            points.append([y-1, x])
+            points.append([y - 1, x])
             break
 
     ps = pd.DataFrame(points, columns=['Index', 'Close'])
 
+    model = []
     for i in range(1, len(ps['Index'])):
-        linReg(ps['Index'][i - 1], ps['Index'][i])
+        p, r = linReg(ps['Index'][i - 1], ps['Index'][i])
+        sub_model = []
+        for l, k in zip(p, r):
+            sub_model.append([l, k])
+        model.append(sub_model)
 
     ps.set_index('Index', inplace=True)
 
     plt.plot(data['Close'])
+    return model
 
 
 # Linear Regression Function
@@ -113,21 +124,58 @@ def linReg(start, end):
     model.fit(x, y)
     # plt.plot(x, y, color='g')
     plt.plot(x, model.predict(x), color='r')
+    return x, model.predict(x)
+
+
+def AutoTS_Model():
+    tsData = pd.read_csv("DOGE-USD.csv")
+
+    tsdf = tsData.drop(['Adj Close', 'Low', 'High', 'Volume', 'Open'], axis=1)
+    tsdf['Date'] = pd.to_datetime(tsdf['Date'])
+    tsdf = tsdf.set_index('Date')
+
+    tsdf.plot(figsize=(12, 8), title="DogeCoin", fontsize=20, label="Close Price")
+    plt.grid()
+    plt.legend()
+
+    tsmodel = AutoTS(forecast_length=7, frequency='infer',
+                     ensemble='simple', drop_data_older_than_periods=200)
+    tsmodel = tsmodel.fit(data, date_col='Date', value_col='Close', id_col=None)
+
+    prediction = tsmodel.predict()
+    forecast = prediction.forecast
+
+    df.plot(figsize=(12, 8), title="DogeCoin", fontsize=20, label="Close Price")
+    forecast['Close'].plot(figsize=(12, 8), title='DogeCoin', fontsize=20, label='Test')
+    plt.grid()
+    plt.legend()
+
+    prediction.forecast
 
 
 if __name__ == "__main__":
+    global df
+    df = pd.read_csv("DOGE-USD.csv")
     data_reset()
-    plt.show()
-
+    # plt.show()
+    AutoTS = False
     while True:
-        user = int(input('1) Zig-Zag 2) Linear 3) Exit '))
+        user = int(input('\n1) Zig-Zag  2) Linear  3) Toggle AutoTS  4) Exit '))
         if user == 1:
             percent = int(input('Enter %: '))
-            zig_zag(percent)
+            model = zig_zag(percent)
+            # if AutoTS:
+
             plt.show()
         elif user == 2:
             percent = int(input('Enter %: '))
-            zig_zag_linReg(percent)
+            model = zig_zag_linReg(percent)
+            plt.show()
+        elif user == 3:
+            AutoTS = not AutoTS
+            print(f'AutoTS set to {AutoTS}')
+
+            AutoTS_Model()
             plt.show()
         else:
             break
