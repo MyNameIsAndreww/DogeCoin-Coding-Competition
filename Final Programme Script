@@ -1,0 +1,125 @@
+# https://www.investopedia.com/terms/z/zig_zag_indicator.asp
+# https://towardsdatascience.com/7-libraries-that-help-in-time-series-problems-d59473e48ddd
+
+try:
+    from sklearn.linear_model import LinearRegression
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import time
+    import datetime
+    from autots import AutoTS
+except ImportError as error:
+    print('\nPossible import Error...')
+
+
+# Data processing
+def data_reset():
+    unix = []
+    for i in df['Date']:
+        u = time.mktime(datetime.datetime.strptime(i, "%Y-%m-%d").timetuple())
+        unix.append(u)
+    close = df['Close'].tolist()
+
+    global data
+    data = pd.DataFrame(list(zip(unix, close)), columns=['Date', 'Close'])
+    plt.plot(data['Close'], color='b')
+
+
+# Zig Zag indicator using linear regression
+def zig_zag_linReg(percent):
+    print('\nCalculating model...')
+    percent_cuttoff = percent / 100
+    global index
+    index = data.index.tolist()[0]
+    global points
+    points = [[index, data['Close'][index]]]
+
+    # x is each close price and y is the index at which that close price was recorded
+    while True:
+        duplicate = index
+        for x, y in zip(
+                data['Close'][index - int(data.index.tolist()[0]):],
+                data[index - int(data.index.tolist()[0]):].index.tolist()):
+            percent = abs((x - data['Close'][index]) / data['Close'][index])
+            if percent >= percent_cuttoff:
+                points.append([y, x])
+                index = y
+                break
+        if index == len(data) - 1 or duplicate == index:
+            points.append([y, x])
+            break
+
+    ps = pd.DataFrame(points, columns=['Index', 'Close'])
+
+    model = []
+    for i in range(1, len(ps['Index'])):
+        print(ps)
+        p, r, m = linReg(ps['Index'][i - 1], ps['Index'][i])
+        sub_model = []
+        for l, k in zip(p, r):
+            sub_model.append([l, k])
+        model.append(sub_model)
+
+    forecast = []
+    index = []
+    for i in range(0, 7):
+        forecast.append(ps['Index'].tolist()[-1] + i)
+        index.append(ps['Index'].tolist()[-1] + i)
+    forecast = np.array(forecast)
+    forecast = forecast.reshape(-1, 1)
+    forecast = m.predict(forecast)
+
+    ps.set_index('Index', inplace=True)
+
+    forecast_plot = []
+    for o, l in zip(forecast, index):
+        forecast_plot.append([o, l])
+    forecast_plot = pd.DataFrame(forecast_plot)
+    forecast_plot.set_index(1, inplace=True)
+
+    print(forecast_plot)
+    plt.plot(forecast_plot, color='g')
+    return model, forecast
+
+
+# Linear Regression Function
+def linReg(start, end):
+    start = start - data.index[0]
+    end = end - data.index[0]
+    print(start, end)
+    x = np.array(data.index.tolist()[start:end])
+    y = np.array(data['Close'][start:end])
+    x = x.reshape(-1, 1)
+    y = y.reshape(-1, 1)
+
+    model = LinearRegression()
+    model.fit(x, y)
+    # plt.plot(x, y, color='g')
+    plt.plot(x, model.predict(x), color='r')
+    return x, model.predict(x), model
+
+
+if __name__ == "__main__":
+    file = input('\nHello and welcome to this data forecasting programme. Before we can begin,'
+                 '\nmake sure you have uploaded the data in the correct format.'
+                 '\nThe data should be from Yahoo Finance (link bellow) in a csv file named "DOGE-USD.csv" and should be placed'
+                 '\nin the same directory as this file. If this is not the case,'
+                 '\nplease exit the programme and add the correct file, otherwise'
+                 '\njust hit enter twice'
+                 '\nData download: https://finance.yahoo.com/quote/DOGE-USD/history/')
+
+    global df
+    df = pd.read_csv("DOGE-USD.csv")
+    data_reset()
+
+    model, forecast = zig_zag_linReg(15)
+
+    today = datetime.date.today()
+    print('\n\033[1mHere is the forecast for the next 7 days:\033[0m')
+    for i in range(len(forecast)):
+        d = datetime.date.today() + datetime.timedelta(days=i)
+        print(f'{d}: {forecast[i]}')
+    print('\nUse the tools on the plot to zoom and inspect the graph closer.')
+
+    plt.show()
